@@ -1,0 +1,11 @@
+1. Side to side single color
+2. All four directions single color
+3. All four directions color shift
+4. out from center single color
+5. Random pulse with random color
+
+
+
+
+Brightness with sound
+Brightness controll overall

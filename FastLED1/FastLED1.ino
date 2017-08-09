@@ -1,3 +1,8 @@
+#include <Adafruit_LSM303_U.h>
+#include <Adafruit_Sensor.h>
+
+#include <LiquidCrystal.h>
+
 #include "FastLED.h"
 
 FASTLED_USING_NAMESPACE
@@ -27,6 +32,10 @@ CRGB leds[NUM_LEDS];
 
 #define POT_DATA 10
 
+
+//Mag sensor stuff
+Adafruit_LSM303_Mag_Unified mag = Adafruit_LSM303_Mag_Unified(12345);
+
 void setup() {
   delay(3000); // 3 second delay for recovery
   Serial.begin(115200);
@@ -37,6 +46,8 @@ void setup() {
 
   // set master brightness control
   FastLED.setBrightness(BRIGHTNESS);
+
+  mag.enableAutoRange(true);
 }
 
 
@@ -50,6 +61,8 @@ uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 uint16_t knob = 0;
 
 uint16_t knobValues[] = {0, 40, 158, 280, 398, 514, 626, 746, 867, 985, 1023};
+
+
   
 void loop()
 {
@@ -61,6 +74,23 @@ void loop()
   gCurrentPatternNumber = getPatternNumber(knob);
   Serial.print("Pattern: ");
   Serial.println(gCurrentPatternNumber);
+
+
+ //Mag
+ /* Get a new sensor event */
+  sensors_event_t event;
+  mag.getEvent(&event);
+
+  uint32_t magTotal = abs(event.magnetic.x + event.magnetic.y + event.magnetic.z);
+  magTotal = magTotal*4;
+  gHue = magTotal;
+  
+
+  /* Display the results (magnetic vector values are in micro-Tesla (uT)) */
+  Serial.print("X: "); Serial.print(event.magnetic.x); Serial.print("  ");
+  Serial.print("Y: "); Serial.print(event.magnetic.y); Serial.print("  ");
+  Serial.print("Z: "); Serial.print(event.magnetic.z); Serial.print("  ");Serial.println("uT");
+  Serial.print("Mag Total: "); Serial.print(magTotal); Serial.print("  ");Serial.println("uT");
   
   // Call the current pattern function once, updating the 'leds' array
   gPatterns[gCurrentPatternNumber]();
@@ -71,7 +101,7 @@ void loop()
   FastLED.delay(1000/FRAMES_PER_SECOND); 
 
   // do some periodic updates
-  EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
+  //EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
   //EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically
 }
 
@@ -168,4 +198,6 @@ uint8_t getPatternNumber(uint16_t knob) {
   //catchall
   return 0;
 }
+
+
 

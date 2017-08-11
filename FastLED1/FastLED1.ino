@@ -48,15 +48,25 @@ void setup() {
   FastLED.setBrightness(BRIGHTNESS);
 
   mag.enableAutoRange(true);
+  uint8_t count = 0;
+  if(!mag.begin() && count <10)
+  {
+    /* There was a problem detecting the LSM303 ... check your connections */
+    Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
+    while(1);
+    count++;
+  }
 }
 
 
 // List of patterns to cycle through.  Each is defined as a separate function below.
 typedef void (*SimplePatternList[])();
-SimplePatternList gPatterns = { rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm, rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm };
+SimplePatternList gPatterns = { rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm, rainbowFast, solid, gradient, sinelon, juggle, bpm };
 
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
-uint8_t gHue = 0; // rotating "base color" used by many of the patterns
+uint8_t gHue = 0; // Hue from the mag sensor
+uint8_t timeHue = 0; //Hue over time
+
 
 uint16_t knob = 0;
 
@@ -101,7 +111,7 @@ void loop()
   FastLED.delay(1000/FRAMES_PER_SECOND); 
 
   // do some periodic updates
-  //EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
+  EVERY_N_MILLISECONDS( 20 ) { timeHue++; } // slowly cycle the "base color" through the rainbow
   //EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically
 }
 
@@ -118,6 +128,25 @@ void rainbow()
   // FastLED's built-in rainbow generator
   fill_rainbow( leds, NUM_LEDS, gHue, 7);
 }
+
+void rainbowFast() 
+{
+  // FastLED's built-in rainbow generator
+  fill_rainbow( leds, NUM_LEDS, gHue+timeHue, 7);
+}
+
+void solid() 
+{
+  // FastLED's built-in rainbow generator
+  fill_solid( leds, NUM_LEDS, CHSV(gHue,255,255));
+}
+
+void gradient() 
+{
+  // FastLED's built-in rainbow generator
+  fill_gradient( leds, NUM_LEDS, CHSV(gHue,255,255), CHSV(timeHue,255,255), SHORTEST_HUES);
+}
+
 
 void rainbowWithGlitter() 
 {

@@ -31,7 +31,7 @@
 #define STRIP_PIN1 12
 #define STRIP_PIN2 6
 
-#define STRIP_LENGTH1 50
+#define STRIP_LENGTH1 152
 #define STRIP_LENGTH2 75
 
 CRGB leds1[STRIP_LENGTH1];

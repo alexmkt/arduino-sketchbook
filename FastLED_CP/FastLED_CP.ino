@@ -22,13 +22,18 @@ FASTLED_USING_NAMESPACE
 
 #define DATA_PIN    12
 #define CP_NEO_PIN    17
-//#define CLK_PIN   4
+#define LEFT_BUTTON_PIN 4
+#define RIGHT_BUTTON_PIN 19
 #define LED_TYPE    WS2811
 #define COLOR_ORDER GRB
-#define NUM_LEDS    148
+//coat
+//#define NUM_LEDS    148
+//hat
+#define NUM_LEDS 38
 CRGB leds[NUM_LEDS];
 
-#define BRIGHTNESS          48
+uint8_t max_brightness=48;
+uint8_t min_brightness=10;
 #define FRAMES_PER_SECOND  120
 
 #define MIC_PIN         A4  // Microphone is attached to this analog pin (A4 for circuit playground)
@@ -46,7 +51,8 @@ void setup() {
   FastLED.addLeds<LED_TYPE,CP_NEO_PIN,COLOR_ORDER>(leds, 10).setCorrection(TypicalLEDStrip);
 
   // set master brightness control
-  FastLED.setBrightness(BRIGHTNESS);
+  FastLED.setBrightness(max_brightness);
+  
 
 }
 
@@ -59,7 +65,7 @@ uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 uint8_t gHue = 0; // Hue from the mag sensor
 uint8_t timeHue = 0; //Hue over time
 
-uint16_t brightness = BRIGHTNESS;
+uint16_t brightness = max_brightness;
 
 static unsigned int sample;
 unsigned int lastBrightness = 255;
@@ -105,16 +111,24 @@ void loop()
   peakToPeak = signalMax - signalMin;  // max - min = peak-peak amplitude
   brightness = peakToPeak/2;
   brightness = (brightness*brightness)/(255);
-  if (brightness > BRIGHTNESS) {
-    brightness = BRIGHTNESS;
-  } else if (brightness < 1) {
-    brightness = 1;
+  if (brightness > max_brightness) {
+    brightness = max_brightness;
+  } else if (brightness < min_brightness) {
+    brightness = min_brightness;
   }
-  if (brightness >= lastBrightness-10 && brightness <= lastBrightness+10) {
+  if (brightness >= lastBrightness-4 && brightness <= lastBrightness+4) {
     brightness = lastBrightness;
   }
   lastBrightness = brightness;
   //
+
+  //Button Handling start
+   // Check for any button presses by checking their state twice with
+  // a delay inbetween.  If the first press state is different from the
+  // second press state then something was pressed/released!
+  bool leftFirst = CircuitPlayground.leftButton();
+  bool rightFirst = CircuitPlayground.rightButton();
+  
   
   // Call the current pattern function once, updating the 'leds' array
   gPatterns[gCurrentPatternNumber]();
@@ -127,7 +141,35 @@ void loop()
 
   // do some periodic updates
   EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
-  EVERY_N_SECONDS( 20 ) { nextPattern(); } // change patterns periodically
+  //EVERY_N_SECONDS( 20 ) { nextPattern(); } // change patterns periodically
+
+  // Now check for buttons that were released.
+  bool leftSecond = CircuitPlayground.leftButton();
+  bool rightSecond = CircuitPlayground.rightButton();
+
+  // Left button will change the current demo.
+  if (leftFirst && !leftSecond) {
+    nextPattern();
+  }
+
+  if (rightFirst && !rightSecond) {
+      if (max_brightness + 24 > 96) {
+          max_brightness = 0;
+      }
+      max_brightness += 24;
+      if (max_brightness - 48 < 10){
+        min_brightness = 10;
+      } else {
+        min_brightness = max_brightness-48;
+      }
+  }
+  Serial.print("Max Brightness: ");
+  Serial.println(max_brightness);
+  Serial.print("Min Brightness: ");
+  Serial.println(min_brightness);
+  Serial.print("Brightness: ");
+  Serial.println(brightness);
+  
 }
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))

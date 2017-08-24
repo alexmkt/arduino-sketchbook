@@ -27,9 +27,9 @@ FASTLED_USING_NAMESPACE
 #define LED_TYPE    WS2811
 #define COLOR_ORDER GRB
 //coat
-//#define NUM_LEDS    148
+#define NUM_LEDS    148
 //hat
-#define NUM_LEDS 38
+//#define NUM_LEDS 38
 CRGB leds[NUM_LEDS];
 
 uint8_t max_brightness=48;
@@ -41,6 +41,8 @@ uint8_t min_brightness=10;
 #define PEAK_HANG       24  // Time of pause before peak dot falls
 #define PEAK_FALL        4  // Rate of falling peak dot
 #define INPUT_FLOOR     10  // Lower range of analogRead input
+
+#define RANDOM_TIME_MS 5000
 
 void setup() {
   delay(3000); // 3 second delay for recovery
@@ -59,7 +61,7 @@ void setup() {
 
 // List of patterns to cycle through.  Each is defined as a separate function below.
 typedef void (*SimplePatternList[])();
-SimplePatternList gPatterns = { rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm, rainbowFast, solid, gradient, sinelon, juggle, bpm };
+SimplePatternList gPatterns = { rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm, rainbowFast, solid, gradient };
 
 uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
 uint8_t gHue = 0; // Hue from the mag sensor
@@ -69,6 +71,14 @@ uint16_t brightness = max_brightness;
 
 static unsigned int sample;
 unsigned int lastBrightness = 255;
+
+bool leftButtonNow = false;
+bool leftButtonLast = false;
+bool rightButtonNow = false;
+bool rightButtonLast = false;
+long leftButtonPressTime;
+long rightButtonPressTime;
+bool randomEnabled = false;
   
 void loop()
 {
@@ -77,7 +87,7 @@ void loop()
     // Turn off the pixels, then go into deep sleep for a second.
     FastLED.setBrightness(0);
     FastLED.clear();
-    FastLED.show();
+    FastLED.show(); 
     Watchdog.sleep(1000);
   }
 
@@ -121,13 +131,6 @@ void loop()
   }
   lastBrightness = brightness;
   //
-
-  //Button Handling start
-   // Check for any button presses by checking their state twice with
-  // a delay inbetween.  If the first press state is different from the
-  // second press state then something was pressed/released!
-  bool leftFirst = CircuitPlayground.leftButton();
-  bool rightFirst = CircuitPlayground.rightButton();
   
   
   // Call the current pattern function once, updating the 'leds' array
@@ -141,18 +144,32 @@ void loop()
 
   // do some periodic updates
   EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
-  //EVERY_N_SECONDS( 20 ) { nextPattern(); } // change patterns periodically
-
-  // Now check for buttons that were released.
-  bool leftSecond = CircuitPlayground.leftButton();
-  bool rightSecond = CircuitPlayground.rightButton();
-
-  // Left button will change the current demo.
-  if (leftFirst && !leftSecond) {
-    nextPattern();
+  if (randomEnabled) {
+    EVERY_N_SECONDS( 20 ) { nextPattern(); } // change patterns periodically
   }
 
-  if (rightFirst && !rightSecond) {
+
+  //Button Handling start
+  // If button is release, but was pressed last, do the action.
+  leftButtonNow = CircuitPlayground.leftButton();
+  rightButtonNow = CircuitPlayground.rightButton();
+
+  if (!leftButtonNow && leftButtonLast){ //The button was pressed but is now released
+    nextPattern();
+    leftButtonLast = false;
+    if (millis() - leftButtonPressTime > RANDOM_TIME_MS){ //If you've held the button, toggle random
+      randomEnabled = !randomEnabled;
+      FastLED.setBrightness(0);
+      FastLED.clear();
+      FastLED.show();
+      delay(500);
+    }
+  } else if (leftButtonNow && !leftButtonLast) { //currently pressed but was released previously 
+    leftButtonPressTime = millis();
+  }
+  leftButtonLast = leftButtonNow;
+
+  if (!rightButtonNow && rightButtonLast){
       if (max_brightness + 24 > 96) {
           max_brightness = 0;
       }
@@ -162,7 +179,28 @@ void loop()
       } else {
         min_brightness = max_brightness-48;
       }
+    rightButtonLast = false;
+  } else {
+    rightButtonLast = rightButtonNow;
   }
+  
+
+//  // Left button will change the current demo.
+//  if (leftFirst && !leftSecond) {
+//    nextPattern();
+//  }
+
+//  if (rightFirst && !rightSecond) {
+//      if (max_brightness + 24 > 96) {
+//          max_brightness = 0;
+//      }
+//      max_brightness += 24;
+//      if (max_brightness - 48 < 10){
+//        min_brightness = 10;
+//      } else {
+//        min_brightness = max_brightness-48;
+//      }
+//  }
   Serial.print("Max Brightness: ");
   Serial.println(max_brightness);
   Serial.print("Min Brightness: ");

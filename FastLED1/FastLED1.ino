@@ -24,7 +24,7 @@ FASTLED_USING_NAMESPACE
 //#define CLK_PIN   4
 #define LED_TYPE    WS2811
 #define COLOR_ORDER GRB
-#define NUM_LEDS    148
+#define NUM_LEDS    152
 CRGB leds[NUM_LEDS];
 
 #define BRIGHTNESS          96
